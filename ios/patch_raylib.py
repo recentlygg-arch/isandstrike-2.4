@@ -28,10 +28,16 @@ else:
     print("[patch] rlgl.h уже пропатчен")
 
 # --- 2. диагностика SDL-бэкенда (в лог сборки, чтобы проще чинить) ----------
-b = RS / "rcore_desktop_sdl.c"
-t = b.read_text(encoding="utf-8")
-print("[diag] rcore_desktop_sdl.c: SDL_FINGERDOWN:", "SDL_FINGERDOWN" in t,
-      "| SDL_WINDOW_ALLOW_HIGHDPI:", "SDL_WINDOW_ALLOW_HIGHDPI" in t,
-      "| SDL_GL_CONTEXT_PROFILE_ES:", "SDL_GL_CONTEXT_PROFILE_ES" in t)
-if "SDL_FINGERDOWN" not in t:
-    print("[diag] ВНИМАНИЕ: в SDL-бэкенде raylib нет обработки касаний - управление работать не будет")
+# В raylib 5.5 файл лежит в src/platforms/, ищем по всему дереву
+found = list(RS.rglob("rcore_desktop_sdl.c"))
+if not found:
+    print("[diag] ВНИМАНИЕ: rcore_desktop_sdl.c не найден (SDL-бэкенд отсутствует?)")
+else:
+    b = found[0]
+    t = b.read_text(encoding="utf-8")
+    print("[diag] файл:", b)
+    print("[diag] SDL_FINGERDOWN:", "SDL_FINGERDOWN" in t,
+          "| SDL_WINDOW_ALLOW_HIGHDPI:", "SDL_WINDOW_ALLOW_HIGHDPI" in t,
+          "| SDL_GL_CONTEXT_PROFILE_ES:", "SDL_GL_CONTEXT_PROFILE_ES" in t)
+    if "SDL_FINGERDOWN" not in t:
+        print("[diag] ВНИМАНИЕ: в SDL-бэкенде raylib нет обработки касаний - управление работать не будет")
