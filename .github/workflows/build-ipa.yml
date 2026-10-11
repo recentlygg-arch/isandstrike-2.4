@@ -1,0 +1,46 @@
+name: Build IPA (iOS)
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download raylib 5.5 and SDL2
+        run: |
+          git clone --depth 1 --branch 5.5 https://github.com/raysan5/raylib.git app/src/main/cpp/raylib
+          git clone --depth 1 --branch release-2.30.8 https://github.com/libsdl-org/SDL.git ios/SDL2
+
+      - name: Patch raylib for iOS
+        run: python3 ios/patch_raylib.py
+
+      - name: Configure
+        run: |
+          cmake -S ios -B build-ios -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Build
+        run: |
+          cmake --build build-ios --config Release --target sandstrike -- \
+            -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          APP=$(find build-ios -name "sandstrike.app" -type d | head -1)
+          echo "App bundle: $APP"; ls -la "$APP"
+          rm -rf Payload SANDSTRIKE.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/SANDSTRIKE.app
+          zip -qry SANDSTRIKE.ipa Payload
+          ls -la SANDSTRIKE.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SANDSTRIKE-ipa
+          path: SANDSTRIKE.ipa
